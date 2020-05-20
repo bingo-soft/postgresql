@@ -6,17 +6,30 @@
   - block:
       - name: PostgrSQL | Install all the required dependencies | dnf
         dnf:
-          name: "ca-certificates, python-pycurl, glibc-common, libselinux-python, python*-psycopg2"
+          name: "ca-certificates, python*-pycurl, glibc-common, libselinux-python*, python*-psycopg2"
           state: present
 
-      - name: PostgreSQL | Add yum Repository | dnf
+      - name: PostgreSQL | Add yum Repository | Fedora | dnf
         yum_repository:
           name: postgresql
           state: present
           description: postgresql yum repo
           baseurl: "{{ postgresql_dnf_repository_baseurl }}"
           gpgkey: "{{ postgresql_dnf_repository_gpgkey }}"
-        when: postgresql_install_repository
+        when: postgresql_install_repository and ansible_distribution == "Fedora"
+
+      - name: PostgreSQL | Add yum Repository | CentOS | dnf
+        yum_repository:
+          name: postgresql
+          state: present
+          description: postgresql yum repo
+          baseurl: "{{ postgresql_yum_repository_baseurl }}"
+          gpgkey: "{{ postgresql_yum_repository_gpgkey }}"
+        when: postgresql_install_repository and ansible_distribution == "CentOS"
+
+      - name: PostgreSQL | Disbale Postgresql module on CentOS | dnf
+        command: dnf module disable postgresql -y
+        when: postgresql_install_repository and ansible_distribution == "CentOS"
 
       - name: PostgreSQL | Install PostgreSQL | dnf
         dnf:
