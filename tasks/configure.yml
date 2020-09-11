@@ -126,6 +126,17 @@
     mode: 0700
     state: directory
 
+### Copy default file postgresql.conf
+- name: "Copy default config {{ PGDATA }}/postgresql.conf to {{ PGDATA }}/postgresql.conf.default"
+  copy:
+    src: "{{ postgresql_conf_directory }}/postgresql.conf"
+    dest: "{{ postgresql_conf_directory }}/postgresql.conf.default"
+    owner: "{{ postgresql_service_user }}"
+    group: "{{ postgresql_service_group }}"
+    mode: '0600'
+    force: no
+    remote_src: yes
+
 - name: PostgreSQL | Update configuration - pt. 1 (pg_hba.conf)
   template:
     src: pg_hba.conf.j2
@@ -218,7 +229,5 @@
   notify: restart postgresql
 
 - name: PostgreSQL | Reload all conf files
-  service:
-    name: "{{ postgresql_service_name }}"
-    state: reloaded
-  when: postgresql_configuration_pt1.changed or postgresql_configuration_pt2.changed or postgresql_configuration_pt3.changed or postgresql_systemd_custom_conf.changed
+  systemd:
+    daemon_reload: yes

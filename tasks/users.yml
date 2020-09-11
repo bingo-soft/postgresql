@@ -1,9 +1,9 @@
 # file: postgresql/tasks/users.yml
 
 - name: PostgreSQL | Ensure PostgreSQL is running
-  service:
+  systemd:
     name: "{{ postgresql_service_name }}"
-    state: started
+    state: restarted
 
 - name: PostgreSQL | Make sure the PostgreSQL users are present
   postgresql_user:
