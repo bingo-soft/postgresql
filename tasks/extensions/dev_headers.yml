@@ -10,16 +10,23 @@
   notify:
     - restart postgresql
 
-- name: PostgreSQL | Extensions | Make sure the development headers are installed | RedHat or CentOS
-  yum:
-    name:
-      - "postgresql{{ postgresql_version_terse }}-libs"
-      - "postgresql{{ postgresql_version_terse }}-devel"
-    state: present 
-    update_cache: yes
-  when: ansible_pkg_mgr == "yum" and ansible_distribution == "RedHat" or ansible_distribution == "CentOS"
-  notify:
-    - restart postgresql
+- block:
+  - name: "Add repo centos-release-scl-rh for install postgresql{{ postgresql_version }}-devel on CentOS 7"
+    yum:
+      name: centos-release-scl-rh
+      state: present
+    when: ansible_distribution == "CentOS" and ansible_distribution_major_version == "7"
+
+  - name: PostgreSQL | Extensions | Make sure the development headers are installed | RedHat or CentOS
+    yum:
+      name:
+        - "postgresql{{ postgresql_version_terse }}-libs"
+        - "postgresql{{ postgresql_version_terse }}-devel"
+      state: present 
+      update_cache: yes
+    when: ansible_pkg_mgr == "yum" and ansible_distribution == "RedHat" or ansible_distribution == "CentOS"
+    notify:
+      - restart postgresql
 
 - name: PostgreSQL | Extensions | Make sure the development headers are installed | Fedora
   dnf:
