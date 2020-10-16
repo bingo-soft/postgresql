@@ -7,7 +7,7 @@
 
 - name: PostgreSQL | Extensions | Make sure the postgis extensions are installed | Debian
   apt:
-    name: "{{ postgresql_ext_postgis_deps }}"
+    name: "{{ postgresql_ext_postgis_deps_debian }}"
     state: present
     update_cache: yes
     cache_valid_time: "{{apt_cache_valid_time | default (3600)}}"
@@ -15,19 +15,47 @@
   notify:
     - restart postgresql
 
-- name: PostgreSQL | Extensions | Make sure the postgis extensions are installed | RedHat
-  yum:
-    name: "{{ postgresql_ext_postgis_deps }}"
-    state: present
-    update_cache: yes
-  when: ansible_pkg_mgr == "yum" and ansible_os_family == "RedHat"
-  notify:
-    - restart postgresql
-
 - name: PostgreSQL | Extensions | Make sure the postgis extensions are installed | Fedora
   dnf:
-    name: "{{ postgresql_ext_postgis_deps }}"
+    name: "postgis{{ posgresql_postgis_version }}"
     state: present
   when: ansible_pkg_mgr == "dnf" and ansible_distribution == "Fedora"
   notify:
     - restart postgresql
+
+- block:
+  - name: PostgreSQL | Install repo pgdg | CentOS 7 | yum
+    yum:
+      name: "{{ postgresql_pgdg_repository_url }}/reporpms/EL-{{ ansible_distribution_major_version }}-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+      state: present
+    when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" and ansible_distribution_major_version == "7"
+
+  - name: PostgreSQL | Extensions | Make sure the postgis extensions are installed | RedHat 7 or CentOS 7
+    yum:
+      name: "postgis{{ postgresql_postgis_version }}"
+      state: present
+      update_cache: yes
+    when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" and ansible_distribution_major_version == "7"
+    notify:
+      - restart postgresql
+
+- block:
+  - name: PostgreSQL | Install repo pgdg | CentOS 8 | dnf
+    dnf:
+      name: "{{ postgresql_pgdg_repository_url }}/reporpms/EL-{{ ansible_distribution_major_version }}-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+      state: present
+    when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" and ansible_distribution_major_version == "8"
+
+  - name: PostgreSQL | Extensions | Check if PowerTools repo enabled | RedHat 8 or CentOS 8
+    shell: dnf -y config-manager --set-enabled PowerTools
+    args:
+      warn: no
+    when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" and ansible_distribution_major_version == "8"
+
+  - name: PostgreSQL | Extensions | Make sure the postgis extensions are installed | RedHat 8 or CentOS 8
+    dnf:
+      name: "postgis{{ postgresql_postgis_version }}"
+      state: present
+    when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" and ansible_distribution_major_version == "8"
+    notify:
+      - restart postgresql

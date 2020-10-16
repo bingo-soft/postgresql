@@ -1,0 +1,40 @@
+# file: postgresql/tasks/extensions/pgfincore.yml
+
+- include_vars: "{{ item }}"
+  with_first_found:
+    - "../vars/{{ ansible_distribution_release }}.yml"
+    - "../vars/empty.yml"
+
+- name: PostgreSQL | Extensions | Make sure the pgfincore extensions are installed | Debian
+  apt:
+    name: "pgfincore{{ postgresql_version }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: "{{apt_cache_valid_time | default (3600)}}"
+  when: ansible_os_family == "Debian"
+  notify:
+    - restart postgresql
+
+- name: PostgreSQL | Extensions | Make sure the pgfincore extensions are installed | Fedora
+  dnf:
+    name: "pgfincore{{ posgresql_version }}"
+    state: present
+  when: ansible_pkg_mgr == "dnf" and ansible_distribution == "Fedora"
+  notify:
+    - restart postgresql
+
+- block:
+  - name: PostgreSQL | Install repo pgdg | CentOS | yum
+    yum:
+      name: "{{ postgresql_pgdg_repository_url }}/reporpms/EL-{{ ansible_distribution_major_version }}-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+      state: present
+    when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS"
+
+  - name: PostgreSQL | Extensions | Make sure the pgfincore extensions are installed | RedHat or CentOS
+    yum:
+      name: "pgfincore{{ postgresql_version }}"
+      state: present
+      update_cache: yes
+    when: ansible_pkg_mgr == "yum" and ansible_distribution == "RedHat" or ansible_distribution == "CentOS"
+    notify:
+      - restart postgresql

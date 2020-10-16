@@ -39,13 +39,18 @@ postgresql_database_owner: "{{ postgresql_admin_user }}"
 postgresql_ext_install_contrib: no
 postgresql_ext_install_dev_headers: no
 postgresql_ext_install_postgis: no
+postgresql_ext_install_pgfincore: no
 
-postgresql_ext_postgis_version: "2.5" # be careful: check whether the postgresql/postgis versions work together
+# Install by Debian
+postgresql_ext_postgis_version_debian: "2.5" # be careful: check whether the postgresql/postgis versions work together
 
-postgresql_ext_postgis_deps:
+postgresql_ext_postgis_deps_debian:
   - libgeos-c1
-  - "postgresql-{{ postgresql_version }}-postgis-{{ postgresql_ext_postgis_version }}"
+  - "postgresql-{{ postgresql_version }}-postgis-{{ postgresql_ext_postgis_version_debian }}"
   - "postgresql-{{ postgresql_version }}-postgis-scripts"
+
+# Install by RedHat, Centos, Fedora
+postgresql_postgis_version: 30
 
 # Foreign Data Wrapper(s)
 postgresql_fdw_mysql: no
