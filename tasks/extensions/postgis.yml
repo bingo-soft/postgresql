@@ -46,8 +46,8 @@
       state: present
     when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" and ansible_distribution_major_version == "8"
 
-  - name: PostgreSQL | Extensions | Check if PowerTools repo enabled | RedHat 8 or CentOS 8
-    shell: dnf -y config-manager --set-enabled PowerTools
+  - name: PostgreSQL | Extensions | Check if powertools repo enabled | RedHat 8 or CentOS 8
+    shell: dnf -y config-manager --set-enabled powertools
     args:
       warn: no
     when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" and ansible_distribution_major_version == "8"
