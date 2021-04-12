@@ -8,3 +8,4 @@
   when: postgresql_ext_install_postgis
 - import_tasks: extensions/pgfincore.yml
   when: postgresql_ext_install_pgfincore
+
