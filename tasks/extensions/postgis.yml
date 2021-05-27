@@ -5,7 +5,7 @@
     - "../vars/{{ ansible_distribution_release }}.yml"
     - "../vars/empty.yml"
 
-- name: PostgreSQL | Extensions | Make sure the postgis extensions are installed | Debian
+- name: PostgreSQL | Extensions | Make sure the postgis extensions are installed | Debian or Ubuntu
   apt:
     name: "{{ postgresql_ext_postgis_deps_debian }}"
     state: present
@@ -31,10 +31,9 @@
     when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" and ansible_distribution_major_version == "7"
 
   - name: PostgreSQL | Extensions | Make sure the postgis extensions are installed | RedHat 7 or CentOS 7
-    yum:
-      name: "postgis{{ postgresql_postgis_version }}"
-      state: present
-      update_cache: yes
+    shell: yum install -y postgis{{ postgresql_postgis_version }} --nobest
+    args:
+      warn: false
     when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" and ansible_distribution_major_version == "7"
     notify:
       - restart postgresql
@@ -65,9 +64,9 @@
     when: ansible_distribution == "CentOS" and ansible_distribution_major_version == "8"
 
   - name: PostgreSQL | Extensions | Make sure the postgis extensions are installed | RedHat 8 or CentOS 8
-    dnf:
-      name: "postgis{{ postgresql_postgis_version }}"
-      state: present
+    shell: dnf install -y postgis{{ postgresql_postgis_version }} --nobest
+    args:
+      warn: false
     when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" and ansible_distribution_major_version == "8"
     notify:
       - restart postgresql

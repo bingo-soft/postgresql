@@ -1,13 +1,13 @@
-# file: postgresql/tasks/configure.yml
+# file: postgresql/tasks/configure_RedHat.yml
 
-- name: PostgreSQL | Drop the data directory | RedHat
+- name: PostgreSQL | Drop the data directory | RedHat or CentOS
   file:
     path: "{{ postgresql_data_directory }}"
     state: absent
   register: pgdata_dir_remove
-  when: ansible_os_family == "RedHat" and postgresql_cluster_reset
+  when: postgresql_cluster_reset
 
-- name: PostgreSQL | Make sure the postgres data directory exists
+- name: PostgreSQL | Make sure the postgres data directory exists | RedHat or CentOS
   file:
     path: "{{postgresql_data_directory}}"
     owner: "{{ postgresql_service_user }}"
@@ -16,7 +16,7 @@
     mode: 0700
   register: pgdata_dir_exist
 
-- name: PostgreSQL | Make sure the postgres WAL directory exists
+- name: PostgreSQL | Make sure the postgres WAL directory exists | RedHat or CentOS
   file:
     path: "{{ postgresql_wal_directory }}"
     owner: "{{ postgresql_service_user }}"
@@ -26,7 +26,7 @@
   register: pgwal_dir_exist
   when: postgresql_wal_directory != ""
 
-- name: PostgreSQL | Make sure the postgres log directory exists
+- name: PostgreSQL | Make sure the postgres log directory exists | RedHat or CentOS
   file:
     path: "{{ postgresql_log_directory }}"
     owner: "{{ postgresql_service_user }}"
@@ -36,70 +36,22 @@
   register: pglog_dir_exist
   when: postgresql_log_directory != "pg_log"
 
-- name: PostgreSQL | Ensure the locale for lc_collate and lc_ctype is generated | Debian
-  become: yes
-  locale_gen: name="{{ item }}" state=present
-  with_items:
-    - "{{ postgresql_locale }}"
-    - "{{ postgresql_ctype }}"
-  when: ansible_os_family == "Debian" and item != "C.UTF-8"
-
-- name: PostgreSQL | Ensure the locale is generated | RedHat
+- name: PostgreSQL | Ensure the locale is generated | RedHat or CentOS
   become: yes
   command: localedef -c -i {{ item.parts[0] }} -f {{ item.parts[1] }} {{ item.locale_name }}
   changed_when: false
   with_items:
     - { parts: "{{ postgresql_locale_parts }}", locale_name: "{{ postgresql_locale }}" }
     - { parts: "{{ postgresql_ctype_parts }}", locale_name: "{{ postgresql_ctype }}" }
-  when: ansible_os_family == "RedHat"
-  ignore_errors: yes
+  ignore_errors: true
 
-- name: PostgreSQL | Stop PostgreSQL | Debian
-  service:
-    name: "{{ postgresql_service_name }}"
-    state: stopped
-  become: yes
-  when: ansible_os_family == "Debian" and postgresql_cluster_reset and pgdata_dir_exist.changed
-
-- name: PostgreSQL | Reset the cluster - drop the existing one | Debian
-  shell: pg_dropcluster {{ postgresql_version }} {{ postgresql_cluster_name }}
-  become: yes
-  become_user: "{{ postgresql_service_user }}"
-  when: ansible_os_family == "Debian" and postgresql_cluster_reset and pgdata_dir_exist.changed
-
-- name: PostgreSQL | Reset the cluster - create a new one (with specified encoding and locale) | Debian
-  shell: >
-    pg_createcluster --locale {{ postgresql_locale }}
-    -e {{ postgresql_encoding }} -d {{ postgresql_data_directory }}
-    {{ postgresql_version }} {{ postgresql_cluster_name }}
-    --
-    {% if postgresql_data_checksums and postgresql_version is version_compare('9.3', '>=') %}--data-checksums{% endif %}
-    {% if postgresql_pwfile != "" %}--pwfile={{ postgresql_pwfile }} {% endif %}
-    {% if postgresql_wal_directory != "" and postgresql_version is version_compare('10', '<') %}--xlogdir={{ postgresql_wal_directory }} {% endif %}
-    {% if postgresql_wal_directory != "" and postgresql_version is version_compare('10', '>=') %}--waldir={{ postgresql_wal_directory }} {% endif %}
-  become: yes
-  become_user: "{{ postgresql_service_user }}"
-  when: ansible_os_family == "Debian" and postgresql_cluster_reset and pgdata_dir_exist.changed
-
-- name: PostgreSQL | Update systemd | Debian
-  command: systemctl daemon-reload
-  become: yes
-  when: ansible_os_family == "Debian" and postgresql_cluster_reset and pgdata_dir_exist.changed
-
-- name: PostgreSQL | Start PostgreSQL | Debian
-  service:
-    name: "{{ postgresql_service_name }}"
-    state: started
-  become: yes
-  when: ansible_os_family == "Debian" and postgresql_cluster_reset and pgdata_dir_exist.changed
-
-- name: PostgreSQL | Check whether the postgres data directory is initialized | RedHat
+- name: PostgreSQL | Check whether the postgres data directory is initialized | RedHat or CentOS
   stat:
     path: "{{ postgresql_data_directory }}/PG_VERSION"
-  when: ansible_os_family == "RedHat" and not postgresql_cluster_reset
+  when: not postgresql_cluster_reset
   register: pgdata_dir_initialized
 
-- name: PostgreSQL | Initialize the database | RedHat
+- name: PostgreSQL | Initialize the database | RedHat or CentOS
   command: >
     {{ postgresql_bin_directory }}/initdb -D {{ postgresql_data_directory }}
     --locale={{ postgresql_locale }} --encoding={{ postgresql_encoding }}
@@ -109,16 +61,18 @@
     {% if postgresql_wal_directory != "" and postgresql_version is version_compare('10', '>=') %}--waldir={{ postgresql_wal_directory }} {% endif %}
   become: yes
   become_user: "{{ postgresql_service_user }}"
-  when: ansible_os_family == "RedHat" and
-        (postgresql_cluster_reset or
-         pgdata_dir_exist.changed or
-         not pgdata_dir_initialized.stat.exists)
+  when:
+    postgresql_cluster_reset
+    or
+    pgdata_dir_exist.changed
+    or
+    not pgdata_dir_initialized.stat.exists
 
-- name: PostgreSQL | Verify postgresql cluster version
+- name: PostgreSQL | Verify postgresql cluster version | RedHat or CentOS
   command: grep ^{{ postgresql_version }}$ {{ postgresql_data_directory }}/PG_VERSION
   changed_when: false
 
-- name: PostgreSQL | Ensure configuration directory exists
+- name: PostgreSQL | Ensure configuration directory exists | RedHat or CentOS
   file:
     path: "{{ postgresql_conf_directory }}"
     owner: "{{ postgresql_service_user }}"
@@ -127,7 +81,7 @@
     state: directory
 
 ### Copy default file postgresql.conf
-- name: "Copy default config {{ PGDATA }}/postgresql.conf to {{ PGDATA }}/postgresql.conf.default"
+- name: "Copy default config {{ PGDATA }}/postgresql.conf to {{ PGDATA }}/postgresql.conf.default | RedHat or CentOS"
   copy:
     src: "{{ postgresql_conf_directory }}/postgresql.conf"
     dest: "{{ postgresql_conf_directory }}/postgresql.conf.default"
@@ -136,8 +90,14 @@
     mode: '0600'
     force: no
     remote_src: yes
+  when:
+    postgresql_cluster_reset
+    or
+    pgdata_dir_exist.changed
+    or
+    not pgdata_dir_initialized.stat.exists
 
-- name: PostgreSQL | Update configuration - pt. 1 (pg_hba.conf)
+- name: PostgreSQL | Update configuration - pt. 1 (pg_hba.conf) | RedHat or CentOS
   template:
     src: pg_hba.conf.j2
     dest: "{{postgresql_conf_directory}}/pg_hba.conf"
@@ -146,7 +106,7 @@
     mode: 0640
   register: postgresql_configuration_pt1
 
-- name: PostgreSQL | Update configuration - pt. 2 (postgresql.conf)
+- name: PostgreSQL | Update configuration - pt. 2 (postgresql.conf) | RedHat or CentOS
   template:
     src: "postgresql.conf-{{ postgresql_version }}.j2"
     # if using pgtune, save the template to ".untuned"
@@ -156,7 +116,7 @@
     mode: 0640
   register: postgresql_configuration_pt2
 
-- name: PostgreSQL | Update configuration - pt. 3 (pgtune)
+- name: PostgreSQL | Update configuration - pt. 3 (pgtune) | RedHat or CentOS
   become: true
   become_user: "{{ postgresql_service_user }}"
   shell: |
@@ -186,7 +146,7 @@
   register: postgresql_configuration_pt3
   changed_when: "'_OK_' not in postgresql_configuration_pt3.stdout"
 
-- name: PostgreSQL | Update configuration - pt. 4 (pg_ident.conf)
+- name: PostgreSQL | Update configuration - pt. 4 (pg_ident.conf) | RedHat or CentOS
   template:
     src: pg_ident.conf.j2
     dest: "{{ postgresql_ident_file }}"
@@ -196,7 +156,7 @@
   register: postgresql_configuration_pt4
   notify: restart postgresql
 
-- name: PostgreSQL | Create folder for additional configuration files
+- name: PostgreSQL | Create folder for additional configuration files | RedHat or CentOS
   file:
     name: "{{postgresql_conf_directory}}/conf.d"
     state: directory
@@ -204,22 +164,20 @@
     group: "{{ postgresql_service_group }}"
     mode: 0755
 
-- name: PostgreSQL | Ensure the systemd directory for PostgreSQL exists | RedHat
+- name: PostgreSQL | Ensure the systemd directory for PostgreSQL exists | RedHat or CentOS
   file:
     name: "/etc/systemd/system/postgresql-{{ postgresql_version }}.service.d"
     state: directory
     mode: 0755
-  when: ansible_os_family == "RedHat"
   notify: restart postgresql
 
-- name: PostgreSQL | Use the conf directory when starting the Postgres service | RedHat
+- name: PostgreSQL | Use the conf directory when starting the Postgres service | RedHat or CentOS
   template:
     src: etc_systemd_system_postgresql.service.d_custom.conf.j2
     dest: "/etc/systemd/system/postgresql-{{ postgresql_version }}.service.d/custom.conf"
-  when: ansible_os_family == "RedHat"
   register: postgresql_systemd_custom_conf
 
-- name: PostgreSQL | Ensure the pid directory for PostgreSQL exists
+- name: PostgreSQL | Ensure the pid directory for PostgreSQL exists | RedHat or CentOS
   file:
     name: "{{ postgresql_pid_directory }}"
     state: directory
@@ -228,6 +186,6 @@
     mode: u=rwX,g=rwXs,o=rx
   notify: restart postgresql
 
-- name: PostgreSQL | Reload all conf files
+- name: PostgreSQL | Reload all conf files | RedHat or CentOS
   systemd:
-    daemon_reload: yes
+    daemon_reload: true

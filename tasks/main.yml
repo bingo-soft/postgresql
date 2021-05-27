@@ -33,7 +33,7 @@
 - import_tasks: fdw.yml
   tags: [postgresql, postgresql-fdw]
 
-- import_tasks: configure.yml
+- include: "configure_{{ ansible_os_family }}.yml"
   tags: [postgresql, postgresql-configure]
 
 - import_tasks: users.yml

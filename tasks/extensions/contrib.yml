@@ -1,6 +1,6 @@
 # file: postgresql/tasks/extensions/contrib.yml
 
-- name: PostgreSQL | Extensions | Make sure the postgres contrib extensions are installed | Debian
+- name: PostgreSQL | Extensions | Make sure the postgres contrib extensions are installed | Debian or Ubuntu
   apt:
     name: "postgresql-contrib-{{ postgresql_version }}"
     state: present

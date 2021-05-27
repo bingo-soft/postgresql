@@ -1,6 +1,6 @@
 # file: postgresql/tasks/extensions/dev_headers.yml
 
-- name: PostgreSQL | Extensions | Make sure the development headers are installed | Debian
+- name: PostgreSQL | Extensions | Make sure the development headers are installed | Debian or Ubuntu
   apt:
     name: libpq-dev
     state: present

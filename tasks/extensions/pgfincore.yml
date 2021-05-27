@@ -5,9 +5,9 @@
     - "../vars/{{ ansible_distribution_release }}.yml"
     - "../vars/empty.yml"
 
-- name: PostgreSQL | Extensions | Make sure the pgfincore extensions are installed | Debian
+- name: PostgreSQL | Extensions | Make sure the pgfincore extensions are installed | Debian or Ubuntu
   apt:
-    name: "pgfincore{{ postgresql_version }}"
+    name: "postgresql-{{ postgresql_version }}-pgfincore"
     state: present
     update_cache: yes
     cache_valid_time: "{{apt_cache_valid_time | default (3600)}}"
